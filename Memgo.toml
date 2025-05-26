@@ -1,0 +1,6 @@
+[AUTOCLEANER]
+CLEAN_ABOVE = 90 ## Percentage of memory usage above which the cleaner will start cleaning
+CLEAN_INTERVAL = 30 ## Interval in minutes between each cleaning operation
+
+[CONFIG]
+UPDATE_INTERVAL = 1 ## Interval in seconds between each update of the memory usage
