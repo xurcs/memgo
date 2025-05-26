@@ -33,7 +33,7 @@ go run src/main.go
 
 ## Output:
 
-![example](github\image.png)
+![example](image.png)
 
 ## Alternative:
 
