@@ -17,11 +17,11 @@ go mod tidy
 
 ```
 [AUTOCLEANER]
-CLEAN_ABOVE = 90 ## Percentage of memory usage above which the cleaner will start cleaning
-CLEAN_INTERVAL = 30 ## Interval in minutes between each cleaning operation
+CLEAN_ABOVE = 90 ## clean above this percentage of memory usage
+CLEAN_INTERVAL = 30 ## clean interval in minutes
 
 [CONFIG]
-UPDATE_INTERVAL = 1 ## Interval in seconds between each update of the memory usage
+UPDATE_INTERVAL = 1 ## update interval in seconds
 ```
 Visit the [Config here](Memgo.toml).
 
