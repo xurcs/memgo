@@ -89,9 +89,21 @@ func PrintConfig(cleanThreshold, cleanInterval int) {
 func PrintCleaningStart(threshold, currentUsage float64) {
 	fmt.Printf("%s %s Memory usage above threshold (%.0f%%)\n", timestamp(), autoLabel, threshold)
 	fmt.Printf("  • Current usage: %.1f%%\n", currentUsage)
-	fmt.Printf("  • Cleaning RAM...\n")
+	fmt.Printf("  • Cleaning RAM...")
+}
+
+func PrintCleaningProgress(step string) {
+	fmt.Printf(" %s", step)
 }
 
 func PrintCleaningComplete() {
-	fmt.Printf("%s %s RAM cleaned successfully\n", timestamp(), cleanedLabel)
+	fmt.Printf("\n%s %s RAM cleaned successfully\n", timestamp(), cleanedLabel)
+}
+
+func PrintManualCleanStart() {
+	fmt.Printf("%s %s Cleaning RAM...", timestamp(), infoLabel)
+}
+
+func PrintManualCleanComplete() {
+	fmt.Printf("\n%s %s Memory cleaned successfully.\n", timestamp(), cleanedLabel)
 }

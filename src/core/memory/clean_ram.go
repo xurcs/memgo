@@ -2,85 +2,102 @@ package memory
 
 import (
 	"fmt"
+	"os/exec"
 	"runtime"
 	"runtime/debug"
 	"sync"
 	"syscall"
+	"unsafe"
 )
 
 var cleanMutex sync.Mutex
+
+type SYSTEM_CACHE_INFORMATION struct {
+	CurrentSize       uintptr
+	PeakSize          uintptr
+	PageFaultCount    uint32
+	MinimumWorkingSet uintptr
+	MaximumWorkingSet uintptr
+	Unused            [4]uintptr
+}
 
 func CleanRam() error {
 	cleanMutex.Lock()
 	defer cleanMutex.Unlock()
 
 	runtime.GC()
-
 	debug.FreeOSMemory()
 
 	switch runtime.GOOS {
 	case "windows":
 		return cleanRamWindows()
-	case "linux", "darwin":
-		return nil
+	case "linux":
+		return cleanRamLinux()
+	case "darwin":
+		return cleanRamMacOS()
 	default:
 		return fmt.Errorf("unsupported operating system: %s", runtime.GOOS)
 	}
 }
 
 func cleanRamWindows() error {
-
 	kernel32 := syscall.NewLazyDLL("kernel32.dll")
+	ntdll := syscall.NewLazyDLL("ntdll.dll")
+
+	currentProcess, _ := syscall.GetCurrentProcess()
+
 	setProcessWorkingSetSizeProc := kernel32.NewProc("SetProcessWorkingSetSize")
-	emptyWorkingSetProc := kernel32.NewProc("K32EmptyWorkingSet")
+	setProcessWorkingSetSizeProc.Call(uintptr(currentProcess), ^uintptr(0), ^uintptr(0))
 
-	currentProcess, err := syscall.GetCurrentProcess()
-	if err != nil {
-		return fmt.Errorf("failed to get current process handle: %w", err)
-	}
+	ntSetSystemInformationProc := ntdll.NewProc("NtSetSystemInformation")
 
-	ret, _, _ := emptyWorkingSetProc.Call(uintptr(currentProcess))
+	var cacheInfo SYSTEM_CACHE_INFORMATION
+	cacheInfo.MinimumWorkingSet = ^uintptr(0)
+	cacheInfo.MaximumWorkingSet = ^uintptr(0)
 
-	if ret == 0 {
-		minSize := uintptr(0)
-		maxSize := uintptr(0)
-		ret, _, _ = setProcessWorkingSetSizeProc.Call(
-			uintptr(currentProcess),
-			minSize,
-			maxSize,
-		)
+	ntSetSystemInformationProc.Call(
+		uintptr(21),
+		uintptr(unsafe.Pointer(&cacheInfo)),
+		unsafe.Sizeof(cacheInfo),
+	)
 
-		if ret == 0 {
-			ret, _, _ = setProcessWorkingSetSizeProc.Call(
-				uintptr(currentProcess),
-				^uintptr(0), // -1 in two's complement
-				^uintptr(0), // -1 in two's complement
-			)
-		}
-	}
+	command1 := uintptr(1)
+	ntSetSystemInformationProc.Call(80, uintptr(unsafe.Pointer(&command1)), unsafe.Sizeof(command1))
 
-	runtime.GC()
-	debug.FreeOSMemory()
+	command2 := uintptr(2)
+	ntSetSystemInformationProc.Call(80, uintptr(unsafe.Pointer(&command2)), unsafe.Sizeof(command2))
 
-	tryTriggerMemoryReclaim()
+	command3 := uintptr(3)
+	ntSetSystemInformationProc.Call(80, uintptr(unsafe.Pointer(&command3)), unsafe.Sizeof(command3))
+
+	command4 := uintptr(4)
+	ntSetSystemInformationProc.Call(80, uintptr(unsafe.Pointer(&command4)), unsafe.Sizeof(command4))
+
+	exec.Command("powershell", "-Command", "Clear-RecycleBin -Force -ErrorAction SilentlyContinue").Run()
+
+	exec.Command("rundll32.exe", "advapi32.dll,ProcessIdleTasks").Run()
+
+	exec.Command("ipconfig", "/flushdns").Run()
 
 	return nil
 }
 
-func tryTriggerMemoryReclaim() {
-	defer func() {
-		recover()
-	}()
+func cleanRamLinux() error {
+	exec.Command("sync").Run()
 
-	const memoryChunkSize = 100 * 1024 * 1024
-	chunk := make([]byte, memoryChunkSize)
+	exec.Command("sh", "-c", "echo 1 > /proc/sys/vm/drop_caches").Run()
+	exec.Command("sh", "-c", "echo 2 > /proc/sys/vm/drop_caches").Run()
+	exec.Command("sh", "-c", "echo 3 > /proc/sys/vm/drop_caches").Run()
 
-	for i := 0; i < len(chunk); i += 4096 {
-		chunk[i] = 1
-	}
+	exec.Command("sh", "-c", "echo 1 > /proc/sys/vm/compact_memory").Run()
 
-	chunk = nil
+	return nil
+}
 
-	runtime.GC()
-	debug.FreeOSMemory()
+func cleanRamMacOS() error {
+	exec.Command("purge").Run()
+	exec.Command("sync").Run()
+	exec.Command("dscacheutil", "-flushcache").Run()
+
+	return nil
 }

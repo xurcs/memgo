@@ -33,7 +33,7 @@ func loadConfig() (*AutoCleanerConfig, float64, error) {
 	data, err := os.ReadFile("Memgo.toml")
 	if err != nil {
 		if os.IsNotExist(err) {
-			return &AutoCleanerConfig{90, 0}, 0.5, nil // Default values
+			return &AutoCleanerConfig{90, 0}, 0.5, nil
 		}
 		return nil, 0, err
 	}
@@ -43,7 +43,6 @@ func loadConfig() (*AutoCleanerConfig, float64, error) {
 		return nil, 0, err
 	}
 
-	// Default to 0.5 seconds if not specified
 	updateInterval := fullConfig.Config.UpdateInterval
 	if updateInterval <= 0 {
 		updateInterval = 0.5
@@ -118,13 +117,14 @@ func main() {
 			return
 
 		case <-inputChan:
-			gui.PrintInfo("Manual cleaning triggered...")
+			gui.PrintManualCleanStart()
+
 			if err := memory.CleanRam(); err != nil {
 				gui.PrintError("Failed to clean RAM: %v", err)
 			} else {
-				gui.PrintCleaned("Memory cleaned successfully.")
-				lastClean = time.Now()
+				gui.PrintManualCleanComplete()
 			}
+			lastClean = time.Now()
 
 		case <-monitorC:
 			stats, err := monitor.GetRamStats()
@@ -138,23 +138,25 @@ func main() {
 			if stats.UsedPercent >= float64(autoCleaner.CleanAbove) &&
 				time.Since(lastClean) > 30*time.Second {
 				gui.PrintCleaningStart(float64(autoCleaner.CleanAbove), stats.UsedPercent)
+
 				if err := memory.CleanRam(); err != nil {
 					gui.PrintError("Failed to clean RAM: %v", err)
 				} else {
 					gui.PrintCleaningComplete()
-					lastClean = time.Now()
 				}
+				lastClean = time.Now()
 			}
 
 		case <-autoCleanC:
 			if time.Since(lastClean) > time.Minute {
 				gui.PrintAuto("Scheduled cleaning every %d minutes.", autoCleaner.CleanInterval)
+
 				if err := memory.CleanRam(); err != nil {
 					gui.PrintError("Failed to clean RAM: %v", err)
 				} else {
 					gui.PrintCleaned("RAM cleaned by interval.")
-					lastClean = time.Now()
 				}
+				lastClean = time.Now()
 			}
 		}
 	}
