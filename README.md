@@ -1,5 +1,8 @@
 # Memgo - Memory Cleaner in GO
 
+# [KNOWN BUG]: It is not clearing the whole system available RAM at this moment- will look into this soon.
+
+
 A simple, but effective CLI-only memory cleaner for `Windows`, `Linux` and `macOS` (Darwin). It monitors the physical memory (RAM) usage and can clean the RAM based on configurable thresholds and intervals. Manual cleaning is also supported.
 
 ## Requirements:
